@@ -1,0 +1,1023 @@
+# -------------------------------
+# Standard Autoconf-set variables
+# -------------------------------
+
+
+build_alias=x86_64-linux-gnu
+build_vendor=pc
+build_os=linux-gnu
+build=x86_64-pc-linux-gnu
+host_alias=x86_64-linux-gnu
+host_vendor=pc
+host_os=linux-gnu
+host=x86_64-pc-linux-gnu
+target_alias=arm-linux-androideabi
+target_vendor=unknown
+target_os=linux-androideabi
+target_cpu=arm
+target=arm-unknown-linux-androideabi
+# Turn arm-unknown-linux-androideabi into the actually used arm-linux-androideabi
+target_no_unknown=$(subst -unknown-,-,arm-unknown-linux-androideabi)
+
+program_transform_name = s&^&arm-linux-androideabi-&
+
+prefix = /tmp/android-toolchain-eabi
+exec_prefix = ${prefix}
+
+srcdir = .
+abs_srcdir = /home/sparksco/android/linaro/build
+
+bindir = ${exec_prefix}/bin
+sbindir = ${exec_prefix}/sbin
+libexecdir = ${exec_prefix}/libexec
+datadir = ${datarootdir}
+sysconfdir = ${prefix}/etc
+sharedstatedir = ${prefix}/com
+localstatedir = ${prefix}/var
+libdir = ${exec_prefix}/lib
+includedir = ${prefix}/include
+oldincludedir = /usr/include
+infodir = ${datarootdir}/info
+datarootdir = ${prefix}/share
+docdir = ${datarootdir}/doc/${PACKAGE_TARNAME}
+pdfdir = ${docdir}
+htmldir = ${docdir}
+mandir = ${datarootdir}/man
+
+builddir = .
+abs_builddir = /home/sparksco/android/linaro/build
+#
+# miscellaneous variables
+#
+INSTALL:=/usr/bin/install -c
+INSTALL_DATA:=${INSTALL} -m 644
+TOPLEVEL_CONFIGURE_ARGUMENTS:=linux androideabi
+baseargs = '--prefix=/tmp/android-toolchain-eabi' '--disable-docs' '--disable-nls' '--with-gcc-version=linaro-4.7-2012.10' '--with-binutils-version=2.23.51.0.3' '--with-gmp-version=5.0.5' '--with-mpfr-version=3.1.1' '--with-mpc-version=1.0'
+GCC_MIN_VERSION_4_3_0:=yes
+GCC_MIN_VERSION_4_5_0:=yes
+GCC_MIN_VERSION_4_6_0:=yes
+CLOOG_BACKEND:=--enable-cloog-backend=isl
+ENABLE_GRAPHITE:=yes
+PACKAGE_TO_SRCDIR:=../.
+BUILD_ANDROID_GCC:=yes
+GDB_TARGET:=arm-elf-linux
+
+# We need to figure out how to get to top level source directory from
+# a package build directory. 
+# For host modules, accept cache file option, or specification as blank.
+
+
+BINUTILS_VERSION=binutils-2.23.51.0.3
+GOLD_VERSION=binutils-2.23.51.0.3
+GCC_VERSION=gcc-linaro-4.7-2012.10
+NEWLIB_VERSION=newlib-
+GMP_VERSION=gmp-5.0.5
+MPFR_VERSION=mpfr-3.1.1
+MPC_VERSION=mpc-1.0
+PPL_VERSION=ppl-0.11.2
+CLOOG_VERSION=cloog-0.16.3
+GDB_VERSION=gdb-linaro-7.5-2012.09
+HAVE_MPC=no
+HAVE_MPFR=no
+HAVE_GMP=no
+HAVE_PPL=no
+HAVE_CLOOG=no
+STAMP=touch
+
+TARGET_BINUTILS_BUILDDIR=$(abs_builddir)/$(BINUTILS_VERSION)
+TARGET_GCC_BUILDDIR=$(abs_builddir)/$(GCC_VERSION)
+TEMP_INSTALLDIR=$(abs_builddir)/temp-install
+
+ifeq ($(HAVE_MPC),no)
+  MPC_DIR=$(TEMP_INSTALLDIR)
+endif
+
+ifeq ($(HAVE_MPFR),no)
+  MPFR_DIR=$(TEMP_INSTALLDIR)
+endif
+
+ifeq ($(HAVE_GMP),no)
+  GMP_DIR=$(TEMP_INSTALLDIR)
+endif
+
+ifeq ($(HAVE_PPL), no)
+  PPL_DIR=$(TEMP_INSTALLDIR)
+endif
+
+ifeq ($(HAVE_CLOOG), no)
+  CLOOG_DIR=$(TEMP_INSTALLDIR)
+endif
+
+ifeq ($(BINUTILS_VERSION),binutils-2.20.1)
+# gold 2.20.1 is too broken to link gcc 4.6's libgomp
+FIND_TARGET_LD=ld
+else
+ifeq ($(BINUTILS_VERSION),binutils-20100303)
+FIND_TARGET_LD=ld
+else
+# Figure out where to find the ld binary.
+FIND_TARGET_LD=\
+	`[ -d $(TARGET_BINUTILS_BUILDDIR)/gold ] && echo "gold" || echo "ld"`
+endif
+endif
+
+# We export these insteading when configuring target gcc and newlib
+TARGET_BINUTILS_EXPORTS= \
+export	AS_FOR_TARGET=$(TARGET_BINUTILS_BUILDDIR)/gas/as-new \
+	LD_FOR_TARGET=$(TARGET_BINUTILS_BUILDDIR)/$(FIND_TARGET_LD)/ld-new \
+	AR_FOR_TARGET=$(TARGET_BINUTILS_BUILDDIR)/binutils/ar \
+	NM_FOR_TARGET=$(TARGET_BINUTILS_BUILDDIR)/binutils/nm-new \
+	STRIP_FOR_TARGET=$(TARGET_BINUTILS_BUILDDIR)/binutils/strip-new \
+	RANLIB_FOR_TARGET=$(TARGET_BINUTILS_BUILDDIR)/binutils/ranlib \
+	OBJDUMP_FOR_TARGET=$(TARGET_BINUTILS_BUILDDIR)/binutils/objdump
+
+TARGET_MINIMAL_GCC_EXPORTS= \
+export	CC_FOR_TARGET="$(TARGET_GCC_BUILDDIR)/gcc/xgcc \
+		      -B $(TARGET_GCC_BUILDDIR)/gcc \
+		      -isystem $(TARGET_GCC_BUILDDIR)/gcc/include-fixed \
+		      -isystem $(TARGET_GCC_BUILDDIR)/gcc/include"
+#
+# We need -Os as the overrides below interfere with --enable-target-optspace.
+# We also need -mandroid for for target libraries to pass linking test
+# in configuration.
+# 
+# To build libstdc++ with RTTI and exceptions do:
+#
+#export CFLAGS_FOR_TARGET=-fexceptions
+#export CXXFLAGS_FOR_TARGET=-frtti
+#
+CFLAGS_FOR_TARGET+= -O2 -Os -g
+CXXFLAGS_FOR_TARGET+=$(CFLAGS_FOR_TARGET)
+LDFLAGS_FOR_TARGET=
+
+# Helper
+prefix-list = $(foreach e, $(2), $(join $1, $e))
+
+# find source directory for package. This can either be <srcdir>/<package>
+# or <objdir>/temp-src/<package>
+
+find-package-srcdir = $(shell \
+  if [ -f $(srcdir)/../$(firstword $(subst -, ,$1))/$(strip $1)/configure ]; then \
+     echo $(PACKAGE_TO_SRCDIR)/../$(firstword $(subst -, ,$1))/$(strip $1); \
+  elif [ -f $(abs_builddir)/temp-src/$(strip $1)/configure ]; then \
+    echo $(abs_builddir)/temp-src/$(strip $1) ; \
+  else \
+    echo 'error cannot find $(strip $1)' ; \
+  fi)
+
+# Set effective <build>, <host> and <target>.
+
+ifneq ($(build_alias),)
+cur_build := $(build_alias)
+else
+cur_build := $(build)
+endif
+
+ifneq ($(host_alias),)
+cur_host := $(host_alias)
+else
+cur_host := $(host)
+endif
+
+ifneq ($(target_alias),)
+cur_target := $(target_alias)
+else
+cur_target := $(target)
+endif
+
+# Define environment variables for canadian cross build.
+ifneq ($(cur_host),$(cur_build))
+canadian_build_env := \
+	export CC_FOR_BUILD=$(cur_build)-gcc ; \
+	export CC=$(cur_build)-gcc ; \
+	export CXX=$(cur_build)-g++ ;
+
+CANADIAN_ROOT := $(PWD)/host-${cur_build}
+canadian_env := \
+	export CC_FOR_BUILD=$(cur_build)-gcc ; \
+	export CC=$(cur_host)-gcc ; \
+	export CXX=$(cur_host)-g++ ; \
+	export AR=$(cur_host)-ar ; \
+	export RANLIB=$(cur_host)-ranlib ; \
+	export PATH="$(CANADIAN_ROOT)/install/bin:${PATH}" ;
+endif
+
+#
+# Make rules
+#
+
+.PHONY: all clean
+
+all: build
+
+# top level
+ifeq ($(ENABLE_GRAPHITE),yes)
+build: install-host-cloog
+endif
+ifneq (, $(findstring android,$(cur_target)))
+# generic target matching our real target (e.g. arm-eabi for arm-linux-androideabi)
+generic_target := $(subst linux-android,,$(cur_target))
+ifeq ($(generic_target),aarch64-)
+generic_target := aarch64-none-elf
+endif
+ifeq ($(generic_target),aarch64-unknown-)
+generic_target := aarch64-none-elf
+endif
+
+ifeq ($(target_cpu),aarch64)
+# No bionic or gdb for aarch64 yet...
+build: build-target-binutils build-generic-target-binutils build-host-libbfd \
+	build-bootstrap-gcc build-generic-target-gcc
+
+install: install-target-binutils install-generic-target-binutils \
+	install-host-libbfd install-bootstrap-gcc install-generic-target-gcc
+else
+ifeq ($(GCC_MIN_VERSION_4_5_0),yes)
+build: build-target-binutils build-generic-target-binutils build-host-libbfd \
+	build-target-gcc build-generic-target-gcc \
+	build-target-gdb remove-bionic
+
+install: install-target-binutils install-generic-target-binutils \
+	install-host-libbfd install-target-gcc install-generic-target-gcc \
+	install-target-gdb
+else
+# gcc < 4.5 is too broken to build a proper target compiler
+# But it's sufficient to build the bootstrap target compiler...
+build: build-target-binutils build-generic-target-binutils build-host-libbfd \
+	build-bootstrap-gcc build-generic-target-gcc build-target-gdb
+
+install: install-target-binutils install-generic-target-binutils \
+	install-host-libbfd install-bootstrap-gcc install-generic-target-gcc \
+	install-target-gdb
+endif
+endif
+else
+build: build-target-binutils build-host-libbfd build-bootstrap-gcc \
+	build-target-gdb
+
+install: install-target-binutils install-host-libbfd install-bootstrap-gcc \
+	install-target-gdb
+endif
+
+# To support canadian cross build we need to build build->target toolchain
+# as well as final host->target toolchain.
+ifneq ($(cur_host),$(cur_build))
+.PHONY: config-canadian-tools build-canadian-tools install-canadian-tools
+
+config-canadian-tools: stmp-config-canadian-tools
+stmp-config-canadian-tools:
+	([ -d $(CANADIAN_ROOT) ] || \
+	  mkdir $(CANADIAN_ROOT)) && \
+	($(canadian_build_env) \
+	 cd $(CANADIAN_ROOT) && \
+	 $(abs_srcdir)/configure $(baseargs) --build=$(cur_build) \
+		--host=$(cur_build) --target=$(cur_target)) && \
+	$(STAMP) $@
+
+build-canadian-tools: stmp-build-canadian-tools
+stmp-build-canadian-tools: stmp-config-canadian-tools
+	($(canadian_build_env) \
+	 cd $(CANADIAN_ROOT) && \
+	 $(MAKE)) && \
+	$(STAMP) $@
+
+install-canadian-tools: stmp-install-canadian-tools
+stmp-install-canadian-tools: stmp-build-canadian-tools
+	($(canadian_build_env) \
+	 cd $(CANADIAN_ROOT) && \
+	 $(MAKE) install prefix=$(CANADIAN_ROOT)/install) && \
+	$(STAMP) $@
+
+# When building canadian cross toolchain we cannot build GCC target libraries.
+# So we build the compilers only and copy the target libaries from
+# $(CANADIAN_ROOT)/install/ installation.
+gcc_build_target := all-gcc
+gcc_install_target := install-gcc
+install-target-gcc-multilibs: stmp-install-canadian-tools
+	mkdir -p $(prefix)/lib/gcc/
+	rsync -a $(CANADIAN_ROOT)/install/lib/gcc/ $(prefix)/lib/gcc/
+install-target-gcc-multilibs := install-target-gcc-multilibs
+
+# We add canadian_stmp dependency to rules that have no dependencies
+# on other modules.  This is to ensure that simple cross toolchain is built
+# before canadian cross toolchain.
+canadian_stmp := stmp-install-canadian-tools
+else
+gcc_build_target :=
+gcc_install_target := install
+install-target-gcc-multilibs :=
+canadian_stmp :=
+endif
+
+ifneq ($(BINUTILS_VERSION), $(GOLD_VERSION))
+build: build-target-gold
+install: install-target-gold
+endif
+
+# target binutils rules
+.PHONY: config-target-binutils build-target-binutils install-target-binutils
+config-target-binutils: stmp-config-target-binutils
+# We do not want to enable shared libraries in binutils
+BINUTILS_CONFIG_ARGS=--prefix=$(prefix) \
+	--host=${cur_host} --build=${cur_build} \
+	$(baseargs) --disable-shared --disable-werror
+ifeq ($(BINUTILS_VERSION),binutils-2.20.1)
+BINUTILS_CONFIG_ARGS+= --enable-gold=both/gold
+else
+ifeq ($(BINUTILS_VERSION),binutils-20100303)
+BINUTILS_CONFIG_ARGS+= --enable-gold=both/gold
+else
+ifeq ($(target_cpu),aarch64)
+# Gold hasn't been ported to aarch64 yet
+BINUTILS_CONFIG_ARGS+= --enable-ld=default --disable-gold
+else
+BINUTILS_CONFIG_ARGS+= --enable-gold=default
+endif
+endif
+endif
+ifeq ($(ENABLE_GRAPHITE),yes)
+BINUTILS_CONFIG_ARGS+= --with-cloog=${CLOOG_DIR} --with-gmp=${GMP_DIR} \
+	--disable-ppl-version-check --disable-cloog-version-check $(CLOOG_BACKEND) \
+	--enable-plugins --enable-threads
+# link to the static C++ runtime to avoid depending on the host version
+BINUTILS_CONFIG_ARGS+= \
+	'--with-host-libstdcxx=-static-libgcc \
+	 -Wl,-Bstatic,-lstdc++,-Bdynamic -lm'
+endif
+stmp-config-target-binutils: config.status stmp-install-host-ppl $(canadian_stmp)
+	([ -d ${BINUTILS_VERSION} ] || \
+	  mkdir ${BINUTILS_VERSION}) && \
+	($(canadian_env) \
+	 cd ${BINUTILS_VERSION} ; \
+	 if which g++-$(HOSTGCC); then export CC=gcc-$(HOSTGCC); export CXX=g++-$(HOSTGCC); fi ; \
+	 $(call find-package-srcdir, ${BINUTILS_VERSION})/configure \
+	  --target=$(cur_target) \
+	  $(BINUTILS_CONFIG_ARGS)) && \
+	$(STAMP) $@
+build-target-binutils: stmp-build-target-binutils
+stmp-build-target-binutils: stmp-config-target-binutils
+	($(canadian_env) \
+	 if which g++-$(HOSTGCC); then export CC=gcc-$(HOSTGCC); export CXX=g++-$(HOSTGCC); fi ; \
+	 $(MAKE) -C ${BINUTILS_VERSION}) && $(STAMP) $@
+install-target-binutils: stmp-build-target-binutils
+	($(canadian_env) \
+	 if which g++-$(HOSTGCC); then export CC=gcc-$(HOSTGCC); export CXX=g++-$(HOSTGCC); fi ; \
+	 $(MAKE) -C ${BINUTILS_VERSION} install)
+
+stmp-config-generic-target-binutils: config.status stmp-install-host-ppl $(canadian_stmp)
+	([ -d generic-${BINUTILS_VERSION} ] || \
+	  mkdir generic-${BINUTILS_VERSION}) && \
+	($(canadian_env) \
+	 cd generic-${BINUTILS_VERSION} ; \
+	 if which g++-$(HOSTGCC); then export CC=gcc-$(HOSTGCC); export CXX=g++-$(HOSTGCC); fi ; \
+	 $(call find-package-srcdir, ${BINUTILS_VERSION})/configure \
+	  --target=$(generic_target) \
+	  $(BINUTILS_CONFIG_ARGS)) && \
+	$(STAMP) $@
+build-generic-target-binutils: stmp-build-generic-target-binutils
+stmp-build-generic-target-binutils: stmp-config-generic-target-binutils
+	($(canadian_env) \
+	 $(MAKE) -C generic-${BINUTILS_VERSION}) && $(STAMP) $@
+install-generic-target-binutils: stmp-build-generic-target-binutils
+	($(canadian_env) \
+	 $(MAKE) -C generic-${BINUTILS_VERSION} install)
+
+# target gold rules.  We need these only if BINUTILS_VERSION != GOLD_VERSION
+ifneq ($(BINUTILS_VERSION), $(GOLD_VERSION))
+.PHONY: config-target-gold build-target-gold install-target-gold
+config-target-gold: stmp-config-target-gold
+# We do not want to enable shared libraries in gold
+GOLD_CONFIG_ARGS=--prefix=$(prefix) \
+	--target=${target_alias} --host=${host} --build=${build} \
+	$(baseargs) --disable-shared
+stmp-config-target-gold: config.status
+	([ -d ${GOLD_VERSION} ] || \
+	  mkdir ${GOLD_VERSION}) && \
+	(cd ${GOLD_VERSION} ; \
+	 $(call find-package-srcdir, ${GOLD_VERSION})/configure \
+	  $(GOLD_CONFIG_ARGS)) && \
+	$(STAMP) $@
+build-target-gold: stmp-build-target-gold
+stmp-build-target-gold: stmp-config-target-gold
+	($(canadian_env) \
+     $(MAKE) -C ${GOLD_VERSION} && $(STAMP) $@)
+
+# If we use a different binutils version of gold, we build gold twice.  We
+# first build everything, including gold with the main binutils version and
+# then install it.  Then we build the gold-only binutils version and install
+# just gold.  We don't bother to skip building the first gold to simplify
+# handling of all combinations of --enable-gold[=*]
+
+install-target-gold: stmp-build-target-gold install-target-binutils
+	($(canadian_env) \
+     make -C $(GOLD_VERSION)/gold install)
+
+endif
+
+# build libbfd for host.  We configure with all targets, so this is built
+# separately from the same source.
+.PHONY: config-host-libbfd build-host-libbfd install-host-libbfd
+config-host-libbfd: stmp-config-host-libbfd
+LIBBFD_CONFIG_ARGS=--prefix=$(prefix) \
+	--host=${host} --build=${build} \
+	$(baseargs) --disable-shared \
+	--enable-install-libbfd --with-included-gettext \
+	--disable-werror
+stmp-config-host-libbfd: config.status
+	([ -d libbfd-${BINUTILS_VERSION} ] || \
+	  mkdir libbfd-${BINUTILS_VERSION}) && \
+	(cd libbfd-${BINUTILS_VERSION} ; \
+	 $(call find-package-srcdir, ${BINUTILS_VERSION})/configure \
+	  $(LIBBFD_CONFIG_ARGS)) && \
+	$(STAMP) $@
+build-host-libbfd: stmp-build-host-libbfd
+stmp-build-host-libbfd: stmp-config-host-libbfd
+	$(MAKE) -C libbfd-${BINUTILS_VERSION} all-bfd all-libiberty && \
+	$(MAKE) -C libbfd-${BINUTILS_VERSION}/intl libintl.a && \
+	$(STAMP) $@
+# Also include libintl.a.  We have to do this manully since the
+# source of libintl in binutils is modified to not install the library.
+# We build with -m32 always.  To avoid installing libiberty.a into /lib32,
+# we need to manually install the archive.  This will need to be cleaned up.
+install-host-libbfd: stmp-build-host-libbfd install-target-binutils
+	$(MAKE) -C libbfd-${BINUTILS_VERSION}/bfd install \
+		bfdlibdir=$(libdir) bfdincludedir=$(includedir) && \
+	$(INSTALL_DATA) libbfd-${BINUTILS_VERSION}/intl/libintl.a \
+		$(libdir) && \
+	$(INSTALL_DATA) libbfd-${BINUTILS_VERSION}/libiberty/libiberty.a \
+		$(libdir)
+
+# target gcc rules
+.PHONY: config-target-gcc build-target-gcc install-target-gcc
+.PHONY: install-target-gcc-gcc $(install-target-gcc-multilibs)
+config-target-gcc: stmp-config-target-gcc
+
+GCC_CONFIG_ARGS=--prefix=$(prefix) \
+	  --host=${cur_host} --build=${cur_build} \
+	  --with-gnu-as --with-gnu-ld --enable-languages=c,c++
+
+# For gcc versions 4.3.0 and later, gmp and mpfr are required.
+# Also build libgcc is a seperate sub-target in 4.3.0+.
+ifeq ($(GCC_MIN_VERSION_4_3_0),yes)
+stmp-config-bootstrap-gcc: stmp-install-host-gmp stmp-install-host-mpfr
+GCC_CONFIG_ARGS += --with-gmp=$(GMP_DIR) --with-mpfr=$(MPFR_DIR)
+endif
+
+# For gcc versions 4.5.0 and higher, mpc is required.
+ifeq ($(GCC_MIN_VERSION_4_5_0),yes)
+stmp-config-bootstrap-gcc: stmp-install-host-mpc
+GCC_CONFIG_ARGS += --with-mpc=$(MPC_DIR)
+endif
+
+# For gcc 4.5+ with graphite optimization, cloog and ppl are required.
+ifeq ($(ENABLE_GRAPHITE),yes)
+GCC_CONFIG_ARGS += --with-cloog=${CLOOG_DIR} --with-ppl=${PPL_DIR} \
+	--disable-ppl-version-check --disable-cloog-version-check $(CLOOG_BACKEND)
+# link to the static C++ runtime to avoid depending on the host version
+GCC_CONFIG_ARGS += \
+	'--with-host-libstdcxx=-static-libgcc \
+	 -Wl,-Bstatic,-lstdc++,-Bdynamic -lm'
+endif
+
+# Add Android specific gcc options.
+# FIXME: These should be overridable by configure options.
+
+
+# Target indenpendent Android gcc options.
+ifeq ($(BUILD_ANDROID_GCC),yes)
+GCC_CONFIG_ARGS += $(GCC_CONFIG_LIBSTDCXX_V3) --disable-libssp \
+	--disable-nls --disable-libmudflap \
+	--disable-shared --disable-sjlj-exceptions \
+	--disable-libquadmath --disable-libitm --disable-libatomic
+CFLAGS_FOR_TARGET += -DTARGET_POSIX_IO -fno-short-enums
+# We need to find pthread.h to build libgcc with threading support.
+# -include .../sys/limits.h is a workaround for Bionic's ptherad.h requiring
+# LONG_BIT, which usually comes in through limits.h -- but gcc has its own
+# version of that which fails to include sys/limits.h
+CFLAGS_FOR_TARGET += -isystem $(abs_srcdir)/../android/bionic/libc/include -isystem $(abs_srcdir)/../android/bionic/libc/kernel/common -isystem $(abs_srcdir)/../android/bionic/libc/kernel/arch-$(target_cpu) -isystem $(abs_srcdir)/../android/bionic/libc/arch-$(target_cpu)/include -isystem $(abs_srcdir)/../android/bionic/libm/include -isystem $(abs_srcdir)/../android/bionic/libm/include/arm -isystem $(abs_srcdir)/../android/bionic/libm/arm -include $(abs_srcdir)/../android/bionic/libc/include/sys/limits.h
+ifeq ($(target_cpu),aarch64)
+# AArch64 doesn't have bionic/libc/arch-aarch64 directories yet, for now, let's use
+# traditional ARM and see what breaks
+CFLAGS_FOR_TARGET += -isystem $(abs_srcdir)/../android/bionic/libc/arch-arm/include -isystem $(abs_srcdir)/../android/bionic/libc/kernel/arch-arm
+endif
+# ARM specific options.
+ifeq ($(target_cpu),arm)
+GCC_CONFIG_ARGS += --with-float=soft --with-fpu=vfp --with-arch=armv5te \
+	--enable-target-optspace
+ifneq ($(target_os),linux-androideabi)
+GCC_CONFIG_ARGS += --with-abi=aapcs
+endif
+endif
+
+endif
+
+# We add the baseargs and the end so that they override any default args
+GCC_CONFIG_ARGS += $(baseargs)
+
+ifeq ($(BUILD_ANDROID_GCC),yes)
+stmp-build-target-bionic: install-target-binutils install-bootstrap-gcc
+	# Workaround for seemingly broken version of make on android-build
+	# not running install-bootstrap-gcc even though we depend on it
+	if [ ! -e $(prefix)/bin/$(cur_target)-gcc ]; then \
+		rm -f stmp*gcc ; \
+		$(MAKE) stmp-build-bootstrap-gcc ; \
+		$(MAKE) install-bootstrap-gcc ; \
+		if [ ! -e $(prefix)/bin/$(cur_target)-gcc ]; then \
+			echo "install-bootstrap-gcc didn't do its job"; \
+			exit 1 ; \
+		fi ; \
+	fi
+ifeq ($(target_cpu),aarch64)
+	# Until we have aarch64 support in build/core, just remove aarch32 specific flags
+	sed -i -e 's,-msoft-float,,;s,-mfloat-abi=softfp,,;s,-mfpu=neon,,;s,-mthumb-interwork,,g;s,-mthumb,,g;s,-march=armv7-a,,g;s,-fstack-protector,,g;s|-Wl,--fix-cortex-a8||g;s|-Wl,--no-fix-cortex-a8||g' $(abs_srcdir)/../android/build/core/combo/TARGET_linux-arm.mk $(abs_srcdir)/../android/build/core/combo/arch/arm/*.mk $(abs_srcdir)/../android/build/core/raw_executable.mk
+	# No gold on aarch64 yet...
+	sed -i -e 's|-Wl,--icf=safe||g' $(abs_srcdir)/../android/build/core/combo/TARGET_linux-arm.mk $(abs_srcdir)/../android/build/core/combo/arch/arm/*.mk
+endif
+	# Building elfutils is necessary for ICS Bionic, but no longer for JellyBean
+	# Uncomment the line below if you're trying to build against a pre-JB Android tree.
+	#ONE_SHOT_MAKEFILE=external/elfutils/Android.mk make -C $(abs_srcdir)/../android all_modules TARGET_TOOLS_PREFIX=$(prefix)/bin/${cur_target}- TARGET_PRODUCT=pandaboard
+	ONE_SHOT_MAKEFILE=build/libs/host/Android.mk make -C $(abs_srcdir)/../android all_modules TARGET_TOOLS_PREFIX=$(prefix)/bin/${cur_target}- TARGET_PRODUCT=pandaboard
+	ONE_SHOT_MAKEFILE=build/tools/acp/Android.mk make -C $(abs_srcdir)/../android all_modules TARGET_TOOLS_PREFIX=$(prefix)/bin/${cur_target}- TARGET_PRODUCT=pandaboard
+	ONE_SHOT_MAKEFILE=bionic/Android.mk make -C $(abs_srcdir)/../android all_modules out/target/product/pandaboard/obj/lib/crtbegin_dynamic.o TARGET_TOOLS_PREFIX=$(prefix)/bin/${cur_target}- TARGET_PRODUCT=pandaboard
+	cp $(abs_srcdir)/../android/out/target/product/pandaboard/obj/lib/* $(prefix)/$(target_no_unknown)/lib/
+	touch dummy.c
+	$(prefix)/bin/${cur_target}-gcc -o dummy.o -c dummy.c
+	$(prefix)/bin/${cur_target}-ar cru $(prefix)/$(target_no_unknown)/lib/libpthread.a dummy.o
+	$(prefix)/bin/${cur_target}-ranlib $(prefix)/$(target_no_unknown)/lib/libpthread.a
+	$(STAMP) $@
+
+# Remove bionic after the final compiler has been built - we should continue
+# to build bionic in the Android build rather than the toolchain build so it
+# is compiled with the optimal settings for the target board.
+remove-bionic:
+	rm -f $(prefix)/$(target_no_unknown)/lib/libc* $(prefix)/$(target_no_unknown)/lib/libm.so $(prefix)/$(target_no_unknown)/lib/libdl.so $(prefix)/$(target_no_unknown)/lib/crt*.o
+	rm -f stmp-build-target-bionic
+else
+stmp-build-target-bionic:
+
+remove-bionic:
+endif
+
+# Usage: $(call config-gcc,TYPE,CONFIGURE_ARGS[,TARGET])
+# Where
+# 	TYPE aka $(1) is bootstrap or target
+#	CONFIGURE_ARGS aka $(2) is extra arguments passed to configure
+#	TARGET aka $(3) is the target platform, e.g. arm-eabi- (default: $(cur_target))
+define config-gcc =
+	[ -n "$(3)" ] && TARGET="$(3)" || TARGET="$(cur_target)" ; \
+	echo "Building gcc for $$TARGET with cur_target $(cur_target), generic_target $(generic_target)"; \
+	([ -d gcc-$(1)-$(GCC_VERSION) ] || \
+	  mkdir gcc-$(1)-$(GCC_VERSION)) && \
+	($(canadian_env) \
+	 cd gcc-$(1)-${GCC_VERSION} ; \
+	 $(TARGET_BINUTILS_EXPORTS) ; \
+	 export CFLAGS_FOR_TARGET="$(CFLAGS_FOR_TARGET)" ; \
+	 export CXXFLAGS_FOR_TARGET="$(CXXFLAGS_FOR_TARGET)" ; \
+	 export LDFLAGS_FOR_TARGET="$(LDFLAGS_FOR_TARGET)" ; \
+	 export CFLAGS="-O2 -m32" ; \
+	 export CXXFLAGS="-O2 -m32" ; \
+	 $(call find-package-srcdir, $(GCC_VERSION))/configure \
+	  $(GCC_CONFIG_ARGS) --target=$$TARGET --enable-threads --enable-tls $(2)) && \
+	$(STAMP) $@
+endef
+
+# Usage: $(call build-gcc,TYPE)
+# Where
+# 	TYPE aka $(1) is bootstrap or target
+define build-gcc =
+	($(canadian_env) \
+	 $(MAKE) -C gcc-$(1)-$(GCC_VERSION) \
+	  CFLAGS_FOR_TARGET="$(CFLAGS_FOR_TARGET)" \
+	  CXXFLAGS_FOR_TARGET="$(CXXFLAGS_FOR_TARGET)" \
+	  LDFLAGS_FOR_TARGET="$(LDFLAGS_FOR_TARGET)" \
+	  $(gcc_build_target)) && \
+	$(STAMP) $@
+endef
+
+# Usage: $(call install-gcc,TYPE)
+# Where
+# 	TYPE aka $(1) is bootstrap or target
+define install-gcc =
+	echo install-gcc running for gcc-$(1)-$(GCC_VERSION) $(gcc_install_target)
+	($(canadian_env) \
+	 $(MAKE) -C gcc-$(1)-$(GCC_VERSION) $(gcc_install_target))
+endef
+
+
+patch-libgomp-for-android: config.status
+	cd temp-src && \
+	grep -q sys/mman.h $(call find-package-srcdir, ${GCC_VERSION})/libgomp/env.c || sed -i -e '/#include <limits.h>/i#include <sys/mman.h>' $(call find-package-srcdir, ${GCC_VERSION})/libgomp/env.c
+
+stmp-patch-libgomp-for-android: patch-libgomp-for-android
+	$(STAMP) $@
+
+# Bootstrap compiler: Just the basics so we don't need a libc yet
+.PHONY: build-bootstrap-gcc install-bootstrap-gcc
+stmp-config-bootstrap-gcc: config.status stmp-install-host-ppl stmp-build-target-binutils
+	# We should just call
+	# $(call config-gcc,bootstrap,--disable-libgomp)
+	# Unfortunately, the version on make on android-build
+	# is really broken (the call statement works fine
+	# w/ make 3.82), so we have to do it manually:
+	TARGET="$(cur_target)" ; \
+	([ -d gcc-bootstrap-$(GCC_VERSION) ] || \
+	  mkdir gcc-bootstrap-$(GCC_VERSION)) && \
+	($(canadian_env) \
+	 cd gcc-bootstrap-${GCC_VERSION} ; \
+	 $(TARGET_BINUTILS_EXPORTS) ; \
+	 export CFLAGS_FOR_TARGET="$(CFLAGS_FOR_TARGET)" ; \
+	 export CXXFLAGS_FOR_TARGET="$(CXXFLAGS_FOR_TARGET)" ; \
+	 export LDFLAGS_FOR_TARGET="$(LDFLAGS_FOR_TARGET)" ; \
+	 export CFLAGS="-O2 -m32" ; \
+	 export CXXFLAGS="-O2 -m32" ; \
+	 $(call find-package-srcdir, $(GCC_VERSION))/configure \
+	  $(GCC_CONFIG_ARGS) --target=$$TARGET --enable-threads --enable-tls --disable-libgomp --disable-libstdc__-v3 --disable-libitm --disable-libatomic) && \
+	$(STAMP) $@
+build-bootstrap-gcc: stmp-build-bootstrap-gcc
+stmp-build-bootstrap-gcc: stmp-config-bootstrap-gcc
+	# We should just call
+	# $(call build-gcc,bootstrap)
+	# Unfortunately, the version on make on android-build
+	# is really broken (the call statement works fine
+	# w/ make 3.82), so we have to do it manually:
+	# Workaround for build-gcc seemingly not working
+	# inside android-build: Broken version of make?
+	($(canadian_env) \
+	 $(MAKE) -C gcc-bootstrap-$(GCC_VERSION) \
+	  CFLAGS_FOR_TARGET="$(CFLAGS_FOR_TARGET)" \
+	  CXXFLAGS_FOR_TARGET="$(CXXFLAGS_FOR_TARGET)" \
+	  LDFLAGS_FOR_TARGET="$(LDFLAGS_FOR_TARGET)" \
+	  $(gcc_build_target)) && \
+	$(STAMP) $@
+install-bootstrap-gcc: stmp-build-bootstrap-gcc
+	# We should just call
+	# $(call install-gcc,bootstrap)
+	# Unfortunately, the version on make on android-build
+	# is really broken (the call statement works fine
+	# w/ make 3.82), so we have to do it manually:
+	# Workaround for build-gcc seemingly not working
+	# inside android-build: Broken version of make?
+	($(canadian_env) \
+	 $(MAKE) -C gcc-bootstrap-$(GCC_VERSION) $(gcc_install_target))
+
+# Target compiler: The real compiler, may have libc dependencies
+.PHONY: build-target-gcc install-target-gcc-gcc install-target-gcc
+stmp-config-target-gcc: config.status stmp-patch-libgomp-for-android stmp-install-host-ppl stmp-build-target-binutils stmp-build-target-bionic
+	# We should just call
+	# $(call config-gcc,target,--enable-libgomp)
+	# Unfortunately, the version on make on android-build
+	# is really broken (the call statement works fine
+	# w/ make 3.82), so we have to do it manually:
+	TARGET="$(cur_target)" ; \
+	([ -d gcc-target-$(GCC_VERSION) ] || \
+	  mkdir gcc-target-$(GCC_VERSION)) && \
+	($(canadian_env) \
+	 cd gcc-target-${GCC_VERSION} ; \
+	 $(TARGET_BINUTILS_EXPORTS) ; \
+	 export CFLAGS_FOR_TARGET="$(CFLAGS_FOR_TARGET) -fexceptions" ; \
+	 export CXXFLAGS_FOR_TARGET="$(CXXFLAGS_FOR_TARGET) -frtti" ; \
+	 export LDFLAGS_FOR_TARGET="$(LDFLAGS_FOR_TARGET)" ; \
+	 export CFLAGS="-O2 -m32" ; \
+	 export CXXFLAGS="-O2 -m32" ; \
+	 $(call find-package-srcdir, $(GCC_VERSION))/configure \
+	  $(GCC_CONFIG_ARGS) --target=$$TARGET --enable-threads --enable-tls --enable-libgomp --disable-libitm --disable-libatomic --disable-libstdc__-v3) && \
+	$(STAMP) $@
+build-target-gcc: stmp-build-target-gcc
+stmp-build-target-gcc: stmp-config-target-gcc
+	# We should just call
+	# $(call build-gcc,target)
+	# Unfortunately, the version on make on android-build
+	# is really broken (the call statement works fine
+	# w/ make 3.82), so we have to do it manually:
+	# Workaround for build-gcc seemingly not working
+	# inside android-build: Broken version of make?
+	($(canadian_env) \
+	 $(MAKE) -C gcc-target-$(GCC_VERSION) \
+	  CFLAGS_FOR_TARGET="$(CFLAGS_FOR_TARGET) -fexceptions" \
+	  CXXFLAGS_FOR_TARGET="$(CXXFLAGS_FOR_TARGET) -frtti" \
+	  LDFLAGS_FOR_TARGET="$(LDFLAGS_FOR_TARGET)" \
+	  $(gcc_build_target)) && \
+	$(STAMP) $@
+install-target-gcc-gcc: stmp-build-target-gcc
+	# We should just call
+	# $(call install-gcc,target)
+	# Unfortunately, the version on make on android-build
+	# is really broken (the call statement works fine
+	# w/ make 3.82), so we have to do it manually:
+	# Workaround for build-gcc seemingly not working
+	# inside android-build: Broken version of make?
+	($(canadian_env) \
+	 $(MAKE) -C gcc-target-$(GCC_VERSION) $(gcc_install_target))
+	(cd $(prefix)/libexec/gcc/$(target_no_unknown) && cd `ls -1` && ln -s ../../../../bin/$(cur_target)-ld real-ld)
+install-target-gcc: install-target-gcc-gcc $(install-target-gcc-multilibs)
+
+
+ifneq ($(generic_target),)
+# Generic target compiler: OS independent bare compiler (e.g. arm-eabi-gcc)
+# Since this compiler cannot make any assumptions about the OS, it is by
+# nature not dependent on any libc bits - so we don't need to go through
+# the steps of building a bootstrap compiler first.
+.PHONY: build-generic-target-gcc install-generic-target-gcc install-generic-target-gcc-gcc
+stmp-config-generic-target-gcc: config.status stmp-install-host-ppl stmp-build-target-binutils
+	# We should just call
+	# $(call config-gcc,generic-target,--disable-libgomp,$(generic_target))
+	# Unfortunately, the version on make on android-build
+	# is really broken (the call statement works fine
+	# w/ make 3.82), so we have to do it manually:
+	TARGET="$(generic_target)" ; \
+	([ -d gcc-generic-target-$(GCC_VERSION) ] || \
+	  mkdir gcc-generic-target-$(GCC_VERSION)) && \
+	($(canadian_env) \
+	 cd gcc-generic-target-${GCC_VERSION} ; \
+	 $(TARGET_BINUTILS_EXPORTS) ; \
+	 export CFLAGS_FOR_TARGET="$(CFLAGS_FOR_TARGET)" ; \
+	 export CXXFLAGS_FOR_TARGET="$(CXXFLAGS_FOR_TARGET)" ; \
+	 export LDFLAGS_FOR_TARGET="$(LDFLAGS_FOR_TARGET)" ; \
+	 export CFLAGS="-O2 -m32" ; \
+	 export CXXFLAGS="-O2 -m32" ; \
+	 $(call find-package-srcdir, $(GCC_VERSION))/configure \
+	  $(GCC_CONFIG_ARGS) --target=$$TARGET --enable-threads --enable-tls --disable-libgomp --disable-libstdc__-v3 --disable-libitm --disable-libatomic) && \
+	$(STAMP) $@
+build-generic-target-gcc: stmp-build-generic-target-gcc
+stmp-build-generic-target-gcc: stmp-config-generic-target-gcc
+	# We should just call
+	# $(call build-gcc,generic-target)
+	# Unfortunately, the version on make on android-build
+	# is really broken (the call statement works fine
+	# w/ make 3.82), so we have to do it manually:
+	# Workaround for build-gcc seemingly not working
+	# inside android-build: Broken version of make?
+	($(canadian_env) \
+	 $(MAKE) -C gcc-generic-target-$(GCC_VERSION) \
+	  CFLAGS_FOR_TARGET="$(CFLAGS_FOR_TARGET)" \
+	  CXXFLAGS_FOR_TARGET="$(CXXFLAGS_FOR_TARGET)" \
+	  LDFLAGS_FOR_TARGET="$(LDFLAGS_FOR_TARGET)" \
+	  $(gcc_build_target)) && \
+	$(STAMP) $@
+install-generic-target-gcc-gcc: stmp-build-generic-target-gcc
+	# We should just call
+	# $(call install-gcc,generic-target)
+	# Unfortunately, the version on make on android-build
+	# is really broken (the call statement works fine
+	# w/ make 3.82), so we have to do it manually:
+	# Workaround for build-gcc seemingly not working
+	# inside android-build: Broken version of make?
+	($(canadian_env) \
+	 $(MAKE) -C gcc-generic-target-$(GCC_VERSION) $(gcc_install_target))
+install-generic-target-gcc: install-generic-target-gcc-gcc
+endif
+
+
+# minimal gcc rules
+# minimal gcc only builds the C and C++ compilers and libgcc
+# We use the full gcc configure rules.
+.PHONY: build-target-minimal-gcc install-target-minimal-gcc
+ifeq ("$(GCC_MIN_VERSION_4_3_0)","yes")
+MINIMAL_GCC_BUILD_TARGETS:= gcc target-libgcc 
+else
+MINIMAL_GCC_BUILD_TARGETS:= gcc
+endif
+
+build-target-minimal-gcc: stmp-build-target-minimal-gcc
+stmp-build-target-minimal-gcc: stmp-config-target-gcc
+	($(canadian_env) \
+	 $(MAKE) -C ${GCC_VERSION} \
+		$(call prefix-list, all-, $(MINIMAL_GCC_BUILD_TARGETS))) && \
+	$(STAMP) $@
+install-target-minimal-gcc: stmp-build-target-minimal-gcc
+	($(canadian_env) \
+	 $(MAKE) -C ${GCC_VERSION} \
+		$(call prefix-list, install-, $(MINIMAL_GCC_BUILD_TARGETS)))
+
+# target newlib rules
+.PHONY: config-target-newlib build-target-newlib install-target-newlib
+config-target-newlib: stmp-config-target-newlib
+NEWLIB_CONFIG_ARGS=$(baseargs) --prefix=$(prefix) \
+	  --target=${cur_target} --host=${cur_host} --build=${cur_build}
+
+stmp-config-target-newlib: stmp-build-target-binutils \
+			   stmp-build-target-minimal-gcc
+	([ -d ${NEWLIB_VERSION} ] || \
+	  mkdir ${NEWLIB_VERSION}) && \
+	($(canadian_env) \
+	 cd ${NEWLIB_VERSION} ; \
+	 $(TARGET_BINUTILS_EXPORTS) ; \
+	 $(TARGET_MINIMAL_GCC_EXPORTS) ; \
+	 $(call find-package-srcdir, ${NEWLIB_VERSION})/configure \
+	  $(NEWLIB_CONFIG_ARGS)) && \
+	$(STAMP) $@
+stmp-build-target-newlib: stmp-config-target-newlib
+	($(canadian_env) \
+	 $(MAKE) -C ${NEWLIB_VERSION}) && $(STAMP) $@
+install-target-newlib: stmp-build-target-newlib
+	($(canadian_env) \
+	 $(MAKE) -C ${NEWLIB_VERSION} install)
+
+# host gmp rules
+.PHONY: config-host-gmp build-host-gmp install-host-gmp
+config-host-gmp: stmp-config-host-gmp
+GMP_CONFIG_ARGS=$(baseargs) --prefix=$(TEMP_INSTALLDIR) --disable-shared \
+	  --host=${cur_host} --build=${cur_build}
+
+ifeq ($(ENABLE_GRAPHITE),yes)
+GMP_CONFIG_ARGS+= --enable-cxx
+endif
+
+stmp-config-host-gmp: config.status $(canadian_stmp)
+	([ -d ${GMP_VERSION} ] || \
+	  mkdir ${GMP_VERSION}) && \
+	($(canadian_env) \
+	 cd ${GMP_VERSION} ; \
+	 $(call find-package-srcdir, ${GMP_VERSION})/configure \
+	  $(GMP_CONFIG_ARGS)) && \
+	$(STAMP) $@
+stmp-build-host-gmp: stmp-config-host-gmp
+	($(canadian_env) \
+	 $(MAKE) -C ${GMP_VERSION}) && $(STAMP) $@
+build-host-gmp: stmp-build-host-gmp
+# Need -j1 to avoid a race condition in building on OS X.
+ifeq ($(HAVE_GMP),no)
+stmp-install-host-gmp: stmp-build-host-gmp
+	$(MAKE) -C ${GMP_VERSION} install -j1 && $(STAMP) $@
+else
+stmp-install-host-gmp:
+endif
+install-host-gmp: stmp-install-host-gmp
+
+# host mpfr rules
+.PHONY: config-host-mpfr build-host-mpfr install-host-mpfr
+config-host-mpfr: stmp-config-host-mpfr
+MPFR_CONFIG_ARGS=$(baseargs) --prefix=$(TEMP_INSTALLDIR) --disable-shared \
+	  --host=${cur_host} --build=${cur_build} \
+	  --with-gmp=$(GMP_DIR)
+stmp-config-host-mpfr: config.status stmp-install-host-gmp
+	([ -d ${MPFR_VERSION} ] || \
+	  mkdir ${MPFR_VERSION}) && \
+	($(canadian_env) \
+	 cd ${MPFR_VERSION} ; \
+	 $(call find-package-srcdir, ${MPFR_VERSION})/configure \
+	  $(MPFR_CONFIG_ARGS)) && \
+	$(STAMP) $@
+stmp-build-host-mpfr: stmp-config-host-mpfr
+	($(canadian_env) \
+	 $(MAKE) -C ${MPFR_VERSION}) && $(STAMP) $@
+build-host-mpfr: stmp-build-host-mpfr
+ifeq ($(HAVE_MPFR),no)
+stmp-install-host-mpfr: stmp-build-host-mpfr
+	$(MAKE) -C ${MPFR_VERSION} install && $(STAMP) $@
+else
+stmp-install-host-mpfr:
+endif
+install-host-mpfr: stmp-install-host-mpfr
+
+# host mpc rules
+.PHONY: config-host-mpc build-host-mpc install-host-mpc
+config-host-mpc: stmp-config-host-mpc
+MPC_CONFIG_ARGS=$(baseargs) --prefix=$(TEMP_INSTALLDIR) --disable-shared \
+	 --host=${cur_host} --build=${cur_build} \
+	 --with-gmp=$(GMP_DIR) --with-mpfr=$(MPFR_DIR)
+stmp-config-host-mpc: config.status stmp-install-host-gmp stmp-install-host-mpfr
+	([ -d ${MPC_VERSION} ] || \
+	  mkdir ${MPC_VERSION}) && \
+	($(canadian_env) \
+	 cd ${MPC_VERSION} ; \
+	 $(call find-package-srcdir, ${MPC_VERSION})/configure \
+	  $(MPC_CONFIG_ARGS)) && \
+	$(STAMP) $@
+stmp-build-host-mpc: stmp-config-host-mpc
+	($(canadian_env) \
+	 $(MAKE) -C ${MPC_VERSION}) && $(STAMP) $@
+build-host-mpc: stmp-build-host-mpc
+ifeq ($(HAVE_MPC),no)
+stmp-install-host-mpc: stmp-build-host-mpc
+	$(MAKE) -C ${MPC_VERSION} install && $(STAMP) $@
+else
+stmp-install-host-mpc:
+endif
+install-host-mpc: stmp-install-host-mpc
+
+# host ppl rules
+.PHONY: config-host-ppl build-host-ppl install-host-ppl
+config-host-ppl: stmp-config-host-ppl
+PPL_CONFIG_ARGS=$(baseargs) --prefix=$(TEMP_INSTALLDIR) --disable-shared \
+		--target=${target_alias} \
+		--host=${host} --build=${build} \
+		--disable-nls --with-libgmp-prefix=$(GMP_DIR) \
+		--disable-watchdog --without-java \
+		--disable-ppl_lcdd --disable-ppl_lpsol --disable-ppl_pips
+stmp-config-host-ppl: config.status stmp-install-host-gmp
+	([ -d ${PPL_VERSION} ] || \
+	 mkdir ${PPL_VERSION}) && \
+	($(canadian_env) \
+	 cd ${PPL_VERSION} ; \
+         export CFLAGS="${CFLAGS} -m32 -I$(GMP_DIR)/include" ; \
+         export CXXFLAGS="${CFLAGS} -m32 -I$(GMP_DIR)/include" ; \
+	$(call find-package-srcdir, ${PPL_VERSION})/configure \
+	 $(PPL_CONFIG_ARGS)) && \
+	$(STAMP) $@
+stmp-build-host-ppl: stmp-config-host-ppl
+	$(MAKE) -C ${PPL_VERSION} && $(STAMP) $@
+build-host-ppl: stmp-build-host-ppl
+stmp-install-host-ppl: stmp-build-host-ppl
+	$(MAKE) -C ${PPL_VERSION} install && \
+	$(STAMP) $@
+install-host-ppl: stmp-install-host-ppl
+
+# host cloog rules
+.PHONY: config-host-cloog build-host-cloog install-host-cloog
+config-host-cloog: stmp-config-host-cloog
+CLOOG_CONFIG_ARGS=$(baseargs) --prefix=$(TEMP_INSTALLDIR) --disable-shared \
+       --target=${target_alias} \
+       --host=${host} --build=${build} \
+       --disable-nls
+# for cloog-ppl version 0.15.x, ppl is required.
+ifneq ($(findstring ppl-,$(CLOOG_VERSION)),)
+CLOOG_TARGET = libcloog.la
+stmp-config-host-cloog: config.status stmp-install-host-ppl \
+			stmp-install-host-ppl-workaround
+stmp-install-host-ppl-workaround:
+	# cloog 0.15.9 is unable to detect newer versions of ppl.
+	# Thus we modify the version definition in header file to satisfy.
+	sed -i -e 's/PPL_VERSION_MINOR 11/PPL_VERSION_MINOR 10/' \
+	 $(PPL_DIR)/include/ppl_c.h
+	$(STAMP) $@
+CLOOG_CONFIG_ARGS+= --with-gmp=$(GMP_DIR) --with-ppl=$(PPL_DIR)
+else
+CLOOG_TARGET = libcloog-isl.la
+CLOOG_CONFIG_ARGS+= --with-gmp-prefix=$(GMP_DIR)
+endif
+stmp-config-host-cloog: config.status stmp-install-host-gmp
+	([ -d ${CLOOG_VERSION} ] || \
+	 mkdir ${CLOOG_VERSION}) && \
+	($(canadian_env) \
+	 cd ${CLOOG_VERSION} ; \
+	$(call find-package-srcdir, ${CLOOG_VERSION})/configure \
+	 $(CLOOG_CONFIG_ARGS)) && \
+	$(STAMP) $@
+stmp-build-host-cloog: stmp-config-host-cloog
+	# Ignore the generation of cloog utilities
+	$(MAKE) -C ${CLOOG_VERSION} $(CLOOG_TARGET) && \
+	$(STAMP) $@
+build-host-cloog: stmp-build-host-cloog
+stmp-install-host-cloog: stmp-build-host-cloog
+	$(MAKE) -C ${CLOOG_VERSION} install-libLTLIBRARIES \
+		install-pkgincludeHEADERS
+ifeq ($(findstring ppl-,$(CLOOG_VERSION)),)
+	$(MAKE) -C ${CLOOG_VERSION}/isl install-libLTLIBRARIES \
+		install-pkgincludeHEADERS
+endif
+	$(STAMP) $@
+install-host-cloog: stmp-install-host-cloog
+
+# target gdb rules
+.PHONY: config-target-gdb build-target-gdb install-target-gdb
+ifeq ($(GDB_VERSION),gdb-none)
+config-target-gdb:
+build-target-gdb:
+install-target-gdb:
+else
+config-target-gdb: stmp-config-target-gdb
+
+GDB_CONFIG_ARGS=$(baseargs) --prefix=$(prefix) \
+	--target=$(GDB_TARGET) --host=${cur_host} --build=${cur_build} \
+	--disable-nls \
+	--disable-werror
+
+stmp-config-target-gdb: config.status $(canadian_stmp)
+	([ -d ${GDB_VERSION} ] || \
+	  mkdir ${GDB_VERSION}) && \
+	($(canadian_env) \
+	 cd ${GDB_VERSION} ; \
+	 $(call find-package-srcdir, ${GDB_VERSION})/configure \
+	  $(GDB_CONFIG_ARGS)) && \
+	$(STAMP) $@
+build-target-gdb: stmp-build-target-gdb
+stmp-build-target-gdb: stmp-config-target-gdb
+	($(canadian_env) \
+	 $(MAKE) -C ${GDB_VERSION}) && $(STAMP) $@
+install-target-gdb: stmp-build-target-gdb
+	($(canadian_env) \
+	 $(MAKE) -C ${GDB_VERSION} install)
+endif
+
+# clean rules
+.PHONY: clean
+clean:
+	$(RM) -r $(TEMP_INSTALLDIR) stmp-build-* stmp-install-* && \
+	for sub in [ * ]; do \
+	  if [ -f $$sub/Makefile ]; then \
+	    $(MAKE) -C $$sub clean ; \
+	  fi; \
+	done
+
+.PHONY: distclean
+distclean:
+	@$(RM) -r config.log config.status \
+		  $(TEMP_INSTALLDIR) temp-src \
+		  stmp-config-* stmp-build-* stmp-install-* && \
+	for sub in [ * ]; do \
+	  if [ -f $$sub/config.status ]; then \
+	    echo "Deleting " $$sub "..." && $(RM) -r $$sub ; \
+	  fi; \
+	done
+	@$(RM) Makefile
