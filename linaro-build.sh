@@ -261,14 +261,13 @@ fi
 
 ${ARG_TOOLCHAIN_SRC_DIR}/build/configure \
   --prefix=${ARG_PREFIX_DIR} --target=${TARGET} \
-  --disable-docs --disable-nls \
   --host=${BUILD_HOST} --build=${BUILD_HOST} \
   ${BUILD_SYSROOT} \
   \
   ${BUILD_WITH_GCC} \
   ${BUILD_WITH_GDB} \
   --with-binutils-version=${BINUTILS_VERSION-2.23.51.0.3} \
-  \
+  --with-gold-version=2.23.51.0.3\
   --with-gmp-version=${GMP_VERSION-5.0.5} \
   --with-mpfr-version=${MPFR_VERSION-3.1.1} \
   --with-mpc-version=${MPC_VERSION-1.0} \
