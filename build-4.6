@@ -1,0 +1,45 @@
+#!/bin/bash
+# Everything runs as root.  Have root access already when running this script e.g. sudo su
+DIRBUILD="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
+# make clean if need be
+if [ -e $DIRBUILD/Makefile ];
+then
+    echo "" && echo "Previous build detected, preparing to run make clean in 10 seconds" && sleep 10
+    make -j `cat /proc/cpuinfo | grep "^processor" | wc -l` "$@" clean && make -j `cat /proc/cpuinfo | grep "^processor" | wc -l` "$@" distclean
+fi;
+# Check for previous installs
+if [ -d $DIRBUILD/working ];
+then
+    if [ -d $DIRBUILD/working/android-toolchain-eabi-4.6 ];
+    then
+        echo "" && echo "Removing $DIRBUILD/working/android-toolchain-eabi-4.6" && sleep 5 && rm -rf $DIRBUILD/working/android-toolchain-eabi-4.6 && mkdir $DIRBUILD/working/android-toolchain-eabi-4.6;
+    else
+        mkdir $DIRBUILD/working/android-toolchain-eabi-4.6;
+    fi;
+else
+    mkdir -p $DIRBUILD/working/android-toolchain-eabi-4.6;
+fi;
+# Check to make sure gcc is present before starting build and fetch gcc if needed
+cd ..;
+DIRSOURCE="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
+if [ -d $DIRSOURCE/gcc ];
+then
+    if [ -d $DIRSOURCE/gcc/gcc-linaro-4.6-2012.10 ];
+    then
+        cd $DIRBUILD && echo "" && echo "Starting the build as root in 5 seconds" && sleep 5 && export CC=gcc-4.7 && export CXX=g++-4.7;
+        bash $DIRBUILD/linaro-build.sh --with-gcc=gcc-linaro-4.6-2012.10 --prefix=$DIRBUILD/working/android-toolchain-eabi-4.6;
+        echo "" && echo "Build complete" && echo "" && echo "toolchain location is $DIRBUILD/working/android-toolchain-eabi-4.6";
+    else
+        echo "" && echo "No gcc detected, downloading from linaro launchpad.net in 5 seconds" && sleep 5;
+        cd $DIRSOURCE/gcc && wget https://launchpad.net/gcc-linaro/4.6/4.6-2012.10/+download/gcc-linaro-4.6-2012.10.tar.bz2 && tar jxvf gcc-linaro-4.6-2012.10.tar.bz2 && cd .. && cd $DIRBUILD;
+        echo "" && echo "Starting the build as root in 5 seconds" && sleep 5 && export CC=gcc-4.7 && export CXX=g++-4.7;
+        bash $DIRBUILD/linaro-build.sh --with-gcc=gcc-linaro-4.6-2012.10 --prefix=$DIRBUILD/working/android-toolchain-eabi-4.6;
+        echo "" && echo "Build complete" && echo "" && echo "toolchain location is $DIRBUILD/working/android-toolchain-eabi-4.6";
+    fi;
+else
+    echo "" && echo "No gcc detected, downloading from linaro launchpad.net in 5 seconds" && sleep 5;
+    mkdir $DIRSOURCE/gcc && cd $DIRSOURCE/gcc && wget https://launchpad.net/gcc-linaro/4.6/4.6-2012.10/+download/gcc-linaro-4.6-2012.10.tar.bz2 && tar jxvf gcc-linaro-4.6-2012.10.tar.bz2 && cd .. && cd $DIRBUILD;
+    echo "" && echo "Starting the build as root in 5 seconds" && sleep 5 && export CC=gcc-4.7 && export CXX=g++-4.7;
+    bash $DIRBUILD/linaro-build.sh --with-gcc=gcc-linaro-4.6-2012.10 --prefix=$DIRBUILD/working/android-toolchain-eabi-4.6;
+    echo "" && echo "Build complete" && echo "" && echo "toolchain location is $DIRBUILD/working/android-toolchain-eabi-4.6";
+fi;
