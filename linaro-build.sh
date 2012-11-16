@@ -275,4 +275,4 @@ ${ARG_TOOLCHAIN_SRC_DIR}/build/configure \
   \
   ${LINARO_BUILD_EXTRA_CONFIGURE_FLAGS}
 
-time make -j `cat /proc/cpuinfo | grep "^processor" | wc -l` "$@" HOSTGCC="$HOSTGCC" && time make -j `cat /proc/cpuinfo | grep "^processor" | wc -l` "$@" install
+time make HOSTGCC="$HOSTGCC" && time make install
