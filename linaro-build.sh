@@ -266,8 +266,9 @@ ${ARG_TOOLCHAIN_SRC_DIR}/build/configure \
   \
   ${BUILD_WITH_GCC} \
   ${BUILD_WITH_GDB} \
-  --with-binutils-version=${BINUTILS_VERSION-2.23.51.0.3} \
-  --with-gold-version=${BINUTILS_VERSION-2.23.51.0.3} \
+  --with-binutils-version=${BINUTILS_VERSION-current} \
+  --with-gold-version=${BINUTILS_VERSION-current} \
+  \
   --with-gmp-version=${GMP_VERSION-5.0.5} \
   --with-mpfr-version=${MPFR_VERSION-3.1.1} \
   --with-mpc-version=${MPC_VERSION-1.0} \
